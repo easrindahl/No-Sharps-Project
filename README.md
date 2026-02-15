@@ -1,5 +1,5 @@
-## Sharps Repository
-# CS 4132/5132 – Spring 2026
+# Sharps Repository
+## CS 4132/5132 – Spring 2026
 
 
 This repository is used for coursework in CS 4132/5132 at the University of Minnesota Duluth.
