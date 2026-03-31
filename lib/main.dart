@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'navigation_shell.dart';
+import 'views/create_report_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -24,6 +25,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
       ),
       home: const NavigationShell(),
+      routes: {
+        '/report': (context) => CreateReportView(),
+      },
     );
   }
 }
