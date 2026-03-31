@@ -10,7 +10,8 @@ class AccountView extends StatefulWidget {
   State<AccountView> createState() => _AccountViewState();
 }
 
-class _AccountViewState extends State<AccountView> implements AccountViewContract {
+class _AccountViewState extends State<AccountView>
+    implements AccountViewContract {
   late final AccountPresenter _presenter;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -38,6 +39,7 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
   @override
   void showLoggedIn(UserModel user) {
     setState(() {
+      _isLoading = false;
       _isLoggedIn = true;
       _user = user;
     });
@@ -46,6 +48,7 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
   @override
   void showLoggedOut() {
     setState(() {
+      _isLoading = false;
       _isLoggedIn = false;
       _user = null;
     });
@@ -76,8 +79,8 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _isLoggedIn
-              ? _buildLoggedInView()
-              : _buildLoggedOutView(),
+          ? _buildLoggedInView()
+          : _buildLoggedOutView(),
     );
   }
 
@@ -144,9 +147,9 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
           const SizedBox(height: 8),
           Text(
             description,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -167,7 +170,9 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
               labelText: 'Password',
               border: const OutlineInputBorder(),
               prefixIcon: const Icon(Icons.lock_outline),
-              helperText: _isSignUpMode ? 'Must be at least 6 characters' : null,
+              helperText: _isSignUpMode
+                  ? 'Must be at least 6 characters'
+                  : null,
             ),
             obscureText: true,
             textInputAction: TextInputAction.done,
@@ -189,18 +194,15 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                togglePrompt,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+              Text(togglePrompt, style: Theme.of(context).textTheme.bodyMedium),
               GestureDetector(
                 onTap: () => setState(() => _isSignUpMode = !_isSignUpMode),
                 child: Text(
                   toggleLabel,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -211,10 +213,7 @@ class _AccountViewState extends State<AccountView> implements AccountViewContrac
               const Expanded(child: Divider()),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'or',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
+                child: Text('or', style: TextStyle(color: Colors.grey[600])),
               ),
               const Expanded(child: Divider()),
             ],
