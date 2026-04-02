@@ -6,17 +6,23 @@ class ReportPresenter {
   ReportPresenter(this.supabase);
 
   Future<String?> uploadImage(File imageFile) async {
-    final fileName = 'needle_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final randomId = (DateTime.now().microsecondsSinceEpoch % 1000000)
+        .toString();
+    final objectPath = 'reports/needle_${randomId}_$timestamp.jpg';
     final storage = supabase.storage.from('needles');
-    final res = await storage.upload(fileName, imageFile);
+    final res = await storage.upload(objectPath, imageFile);
     if (res.isEmpty) return null;
-    final url = storage.getPublicUrl(fileName);
-    return url;
+    // store the file path so the report row can match exactly on timestamped path
+    return objectPath;
   }
 
-  Future<void> submitReport({required String? imageUrl, required String location}) async {
+  Future<void> submitReport({
+    required String? imagePath,
+    required String location,
+  }) async {
     await supabase.from('reports').insert({
-      'image_url': imageUrl,
+      'image_path': imagePath,
       'location': location,
       'created_at': DateTime.now().toIso8601String(),
     });
