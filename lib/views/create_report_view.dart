@@ -1,11 +1,8 @@
-
-
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../presenters/report_presenter.dart';
-
 
 class CreateReportView extends StatefulWidget {
   const CreateReportView({super.key});
@@ -15,7 +12,6 @@ class CreateReportView extends StatefulWidget {
 }
 
 class _CreateReportViewState extends State<CreateReportView> {
-
   final _formKey = GlobalKey<FormState>();
   String? _location;
   File? _imageFile;
@@ -89,8 +85,16 @@ class _CreateReportViewState extends State<CreateReportView> {
                     ),
                     child: Center(
                       child: _imageFile == null
-                          ? const Icon(Icons.camera_alt_outlined, size: 48, color: Colors.grey)
-                          : Image.file(_imageFile!, fit: BoxFit.cover, width: double.infinity),
+                          ? const Icon(
+                              Icons.camera_alt_outlined,
+                              size: 48,
+                              color: Colors.grey,
+                            )
+                          : Image.file(
+                              _imageFile!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
                     ),
                   ),
                 ),
@@ -106,7 +110,8 @@ class _CreateReportViewState extends State<CreateReportView> {
                     border: OutlineInputBorder(),
                   ),
                   onSaved: (val) => _location = val,
-                  validator: (val) => (val == null || val.isEmpty) ? 'Location required' : null,
+                  validator: (val) =>
+                      (val == null || val.isEmpty) ? 'Location required' : null,
                 ),
                 const SizedBox(height: 32),
                 SizedBox(
@@ -117,7 +122,10 @@ class _CreateReportViewState extends State<CreateReportView> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      textStyle: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -126,7 +134,10 @@ class _CreateReportViewState extends State<CreateReportView> {
                         ? const SizedBox(
                             width: 28,
                             height: 28,
-                            child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Submit'),
                   ),
@@ -155,20 +166,23 @@ class _CreateReportViewState extends State<CreateReportView> {
       _formKey.currentState?.save();
       setState(() => _loading = true);
       try {
-        String? imageUrl;
+        String? imagePath;
         if (_imageFile != null) {
-          imageUrl = await presenter.uploadImage(_imageFile!);
+          imagePath = await presenter.uploadImage(_imageFile!);
         }
-        await presenter.submitReport(imageUrl: imageUrl, location: _location ?? '');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Report submitted!')),
+        await presenter.submitReport(
+          imagePath: imagePath,
+          location: _location ?? '',
         );
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Report submitted!')));
         Navigator.pop(context); // Return to previous page (home)
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Submission failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
       } finally {
         if (mounted) setState(() => _loading = false);
       }
