@@ -15,10 +15,23 @@ class SafetyView extends StatelessWidget {
           children: [
             // General Safety Info section
             
-            Text(
-              '24/7 Sharps Hotline Number: 218-730-4001',
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+  children: [
+    const Icon(Icons.phone, color: Colors.blue),
+    const SizedBox(width: 8),
+    //actual callable phone number 
+    InkWell(
+      onTap: () => _launchPhone('2187304001'),
+      child: Text(
+        '218-730-4001',
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.blue,
+              decoration: TextDecoration.underline,
             ),
+      ),
+    ),
+  ],
+),
             
            
             const SizedBox(height: 8),
@@ -192,5 +205,14 @@ class SafetyView extends StatelessWidget {
     if (!await launchUrl(uri)) {
       throw 'Could not launch $url';
     }
+    
   }
+  //will need to configure device to allow phone calls for this to work
+  Future<void> _launchPhone(String phoneNumber) async {
+  final Uri uri = Uri(scheme: 'tel', path: phoneNumber);
+
+  if (!await launchUrl(uri)) {
+    throw 'Could not launch $phoneNumber';
+  }
+}
 }
