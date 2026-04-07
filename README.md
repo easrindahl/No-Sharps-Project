@@ -1,16 +1,13 @@
-# no_sharps
+# Sharps Repository
+## CS 4132/5132 – Spring 2026
 
-A new Flutter project.
 
-## Getting Started
+This repository is used for coursework in CS 4132/5132 at the University of Minnesota Duluth.
 
-This project is a starting point for a Flutter application.
+## License
+This project is licensed under the Apache License 2.0.
 
-A few resources to get you started if this is your first Flutter project:
+## Contributor License Agreement (CLA)
+By submitting code or other content to this repository, you agree to license your contribution under the Apache 2.0 License.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+You retain copyright in your contribution but grant the course staff, university, and the public the right to use, modify, and distribute it under this license.
