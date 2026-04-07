@@ -403,15 +403,9 @@ class _CreateReportViewState extends State<CreateReportView> {
       setState(() => _loading = true);
       try {
         String? imagePath;
-        String? imagePath;
         if (_imageFile != null) {
           imagePath = await presenter.uploadImage(_imageFile!);
-          imagePath = await presenter.uploadImage(_imageFile!);
         }
-        await presenter.submitReport(
-          imagePath: imagePath,
-          location: _location ?? '',
-        );
         await presenter.submitReport(
           imagePath: imagePath,
           location: _location ?? '',
