@@ -5,6 +5,9 @@
         android:label="no_sharps"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBeY-WR8NquIj5ExxJtYV5_8WwvQ8sbQ4Q" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

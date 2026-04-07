@@ -84,7 +84,7 @@ class _CreateReportViewState extends State<CreateReportView> {
     try {
       const String googleApiKey = 'AIzaSyCqQ5m2e49uP6D_HfDL-W2otxC3wLuVKbQ';
       
-      // // Only make API calls if a valid API key is configured
+      // Only make API calls if a valid API key is configured
       // if (googleApiKey == 'AIzaSyCqQ5m2e49uP6D_HfDL-W2otxC3wLuVKbQ') {
       //   setState(() {
       //     _locationSuggestions = [];
@@ -370,6 +370,7 @@ class _CreateReportViewState extends State<CreateReportView> {
                               strokeWidth: 3,
                               color: Colors.white,
                             ),
+
                           )
                         : const Text('Submit'),
                   ),
@@ -402,9 +403,15 @@ class _CreateReportViewState extends State<CreateReportView> {
       setState(() => _loading = true);
       try {
         String? imagePath;
+        String? imagePath;
         if (_imageFile != null) {
           imagePath = await presenter.uploadImage(_imageFile!);
+          imagePath = await presenter.uploadImage(_imageFile!);
         }
+        await presenter.submitReport(
+          imagePath: imagePath,
+          location: _location ?? '',
+        );
         await presenter.submitReport(
           imagePath: imagePath,
           location: _location ?? '',
@@ -413,8 +420,14 @@ class _CreateReportViewState extends State<CreateReportView> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Report submitted!')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Report submitted!')));
         Navigator.pop(context); // Return to previous page (home)
       } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
