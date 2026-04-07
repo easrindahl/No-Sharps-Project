@@ -14,11 +14,23 @@ class ReportPresenter {
     return url;
   }
 
-  Future<void> submitReport({required String? imageUrl, required String location}) async {
+  Future<void> submitReport({
+    required String? imageUrl,
+    required String location,
+  }) async {
     await supabase.from('reports').insert({
       'image_url': imageUrl,
       'location': location,
       'created_at': DateTime.now().toIso8601String(),
     });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchReports({int limit = 10}) async {
+    final rows = await supabase
+        .from('reports')
+        .select()
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return List<Map<String, dynamic>>.from(rows as List);
   }
 }
