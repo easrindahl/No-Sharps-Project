@@ -47,5 +47,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app needs your location to report needle disposal sites.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>This app needs your location to report needle disposal sites.</string>
 </dict>
 </plist>
