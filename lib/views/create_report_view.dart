@@ -23,7 +23,7 @@ class LocationSuggestion {
     return LocationSuggestion(
       description: json['description'] ?? '',
       mainText: json['description'] ?? '',
-      secondaryText: json['types']?.isNotEmpty == true 
+      secondaryText: json['types']?.isNotEmpty == true
           ? (json['types'] as List).first.toString()
           : '',
     );
@@ -81,24 +81,17 @@ class _CreateReportViewState extends State<CreateReportView> {
       });
       return;
     }
+
     try {
       const String googleApiKey = 'AIzaSyCqQ5m2e49uP6D_HfDL-W2otxC3wLuVKbQ';
-      
-      // Only make API calls if a valid API key is configured
-      // if (googleApiKey == 'AIzaSyCqQ5m2e49uP6D_HfDL-W2otxC3wLuVKbQ') {
-      //   setState(() {
-      //     _locationSuggestions = [];
-      //     _showSuggestions = false;
-      //   });
-      //   return;
-      // }
 
       final String url =
           'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$googleApiKey&components=country:us';
 
-      final response = await http.get(Uri.parse(url), headers: {
-        'Accept': 'application/json',
-      });
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Accept': 'application/json'},
+      );
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
@@ -106,7 +99,7 @@ class _CreateReportViewState extends State<CreateReportView> {
         final suggestions = predictions
             .map((p) => LocationSuggestion.fromJson(p))
             .toList();
-        
+
         if (mounted) {
           setState(() {
             _locationSuggestions = suggestions;
@@ -126,8 +119,8 @@ class _CreateReportViewState extends State<CreateReportView> {
 
   Future<void> _useCurrentLocation() async {
     setState(() => _gettingLocation = true);
+
     try {
-      // Check location permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -143,12 +136,10 @@ class _CreateReportViewState extends State<CreateReportView> {
         return;
       }
 
-      // Get current position
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // Convert coordinates to address
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
@@ -176,6 +167,7 @@ class _CreateReportViewState extends State<CreateReportView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -194,10 +186,11 @@ class _CreateReportViewState extends State<CreateReportView> {
               constraints: const BoxConstraints(maxWidth: 500),
               width: double.infinity,
               padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
                     blurRadius: 8,
@@ -211,179 +204,190 @@ class _CreateReportViewState extends State<CreateReportView> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                const Text(
-                  'Submit Needle Disposal',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Upload a photo of the needle and specify its location for safe disposal.',
-                  style: TextStyle(fontSize: 16, color: Colors.black87),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Upload Needle Image:',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    height: 140,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(16),
+                    const Text(
+                      'Submit Needle Disposal',
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
-                    child: Center(
-                      child: _imageFile == null
-                          ? const Icon(
-                              Icons.camera_alt_outlined,
-                              size: 48,
-                              color: Colors.grey,
-                            )
-                          : Image.file(
-                              _imageFile!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                            ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Upload a photo of the needle and specify its location for safe disposal.',
+                      style: TextStyle(fontSize: 16, color: Colors.black87),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Location:',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Stack(
-                  children: [
-                    Column(
-                      children: [
-                        TextFormField(
-                          controller: _locationController,
-                          decoration: InputDecoration(
-                            hintText: 'Enter location or use your current location',
-                            border: const OutlineInputBorder(),
-                            suffixIcon: _gettingLocation
-                                ? const Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                  )
-                                : IconButton(
-                                    icon: const Icon(Icons.location_on),
-                                    onPressed: _gettingLocation
-                                        ? null
-                                        : _useCurrentLocation,
-                                    tooltip: 'Use my location',
-                                  ),
-                          ),
-                          onSaved: (val) => _location = val,
-                          validator: (val) => (val == null || val.isEmpty)
-                              ? 'Location required'
-                              : null,
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Upload Needle Image:',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        height: 140,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        if (_locationController.text.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              'Tip: Tap the location icon to use your GPS location',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ),
-                        if (_showSuggestions && _locationSuggestions.isNotEmpty)
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                left: BorderSide(color: Colors.grey.shade300),
-                                right: BorderSide(color: Colors.grey.shade300),
-                                bottom: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              borderRadius: const BorderRadius.only(
-                                bottomLeft: Radius.circular(4),
-                                bottomRight: Radius.circular(4),
-                              ),
-                            ),
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: _locationSuggestions.length,
-                              itemBuilder: (context, index) {
-                                final suggestion = _locationSuggestions[index];
-                                return ListTile(
-                                  leading: const Icon(Icons.location_on_outlined),
-                                  title: Text(suggestion.mainText),
-                                  subtitle: Text(
-                                    suggestion.secondaryText,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                        child: Center(
+                          child: _imageFile == null
+                              ? const Icon(
+                                  Icons.camera_alt_outlined,
+                                  size: 48,
+                                  color: Colors.grey,
+                                )
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.file(
+                                    _imageFile!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
                                   ),
-                                  onTap: () {
-                                    setState(() {
-                                      _locationController.text =
-                                          suggestion.description;
-                                      _location = suggestion.description;
-                                      _showSuggestions = false;
-                                    });
-                                  },
-                                );
-                              },
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Location:',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                    ),
+                    const SizedBox(height: 8),
+                    Stack(
+                      children: [
+                        Column(
+                          children: [
+                            TextFormField(
+                              controller: _locationController,
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Enter location or use your current location',
+                                border: const OutlineInputBorder(),
+                                suffixIcon: _gettingLocation
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      )
+                                    : IconButton(
+                                        icon: const Icon(Icons.location_on),
+                                        onPressed: _gettingLocation
+                                            ? null
+                                            : _useCurrentLocation,
+                                        tooltip: 'Use my location',
+                                      ),
+                              ),
+                              onSaved: (val) => _location = val,
+                              validator: (val) => (val == null || val.isEmpty)
+                                  ? 'Location required'
+                                  : null,
                             ),
-                          ),
+                            if (_locationController.text.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  'Tip: Tap the location icon to use your GPS location',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            if (_showSuggestions &&
+                                _locationSuggestions.isNotEmpty)
+                              Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    left: BorderSide(color: Colors.grey.shade300),
+                                    right: BorderSide(color: Colors.grey.shade300),
+                                    bottom:
+                                        BorderSide(color: Colors.grey.shade300),
+                                  ),
+                                  borderRadius: const BorderRadius.only(
+                                    bottomLeft: Radius.circular(4),
+                                    bottomRight: Radius.circular(4),
+                                  ),
+                                ),
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  itemCount: _locationSuggestions.length,
+                                  itemBuilder: (context, index) {
+                                    final suggestion =
+                                        _locationSuggestions[index];
+                                    return ListTile(
+                                      leading: const Icon(
+                                        Icons.location_on_outlined,
+                                      ),
+                                      title: Text(suggestion.mainText),
+                                      subtitle: Text(
+                                        suggestion.secondaryText,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          _locationController.text =
+                                              suggestion.description;
+                                          _location = suggestion.description;
+                                          _showSuggestions = false;
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _loading ? null : _submitReport,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          textStyle: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _loading
+                            ? const SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Submit'),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _submitReport,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      textStyle: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _loading
-                        ? const SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              color: Colors.white,
-                            ),
-
-                          )
-                        : const Text('Submit'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  ),
-  backgroundColor: Colors.grey[50],
-); 
+    );
   }
 
   Future<void> _pickImage() async {
@@ -397,34 +401,42 @@ class _CreateReportViewState extends State<CreateReportView> {
 
   Future<void> _submitReport() async {
     if (!mounted) return;
+
     if (_formKey.currentState?.validate() ?? false) {
       _formKey.currentState?.save();
       _location = _locationController.text;
       setState(() => _loading = true);
+
       try {
         String? imagePath;
         if (_imageFile != null) {
           imagePath = await presenter.uploadImage(_imageFile!);
         }
+
         await presenter.submitReport(
           imagePath: imagePath,
           location: _location ?? '',
         );
+
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Report submitted!')));
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Report submitted!')));
-        Navigator.pop(context); // Return to previous page (home)
+
+        final bool isLoggedIn = Supabase.instance.client.auth.currentUser != null;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isLoggedIn
+                  ? 'Report submitted! You earned 1 point.'
+                  : 'Report submitted!',
+            ),
+          ),
+        );
+
+        Navigator.pop(context);
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Submission failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Submission failed: $e')),
+        );
       } finally {
         if (mounted) setState(() => _loading = false);
       }
