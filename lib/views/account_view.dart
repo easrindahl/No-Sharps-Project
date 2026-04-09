@@ -21,6 +21,33 @@ class _AccountViewState extends State<AccountView>
   bool _isSignUpMode = false;
   UserModel? _user;
 
+  final List<Map<String, dynamic>> _rewardOptions = const [
+    {
+      'title': '\$5 Coffee Gift Card',
+      'points': 10,
+      'icon': Icons.local_cafe,
+      'description': 'Redeem points for a coffee shop gift card.',
+    },
+    {
+      'title': 'Movie Theater Coupon',
+      'points': 10,
+      'icon': Icons.movie,
+      'description': 'A fun reward for active community volunteers.',
+    },
+    {
+      'title': 'Campus Bookstore Discount',
+      'points': 15,
+      'icon': Icons.menu_book,
+      'description': 'Save on school supplies or campus merchandise.',
+    },
+    {
+      'title': 'Transit Pass Voucher',
+      'points': 20,
+      'icon': Icons.directions_bus,
+      'description': 'Help users get around while helping the community.',
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -79,36 +106,209 @@ class _AccountViewState extends State<AccountView>
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _isLoggedIn
-          ? _buildLoggedInView()
-          : _buildLoggedOutView(),
+              ? _buildLoggedInView()
+              : _buildLoggedOutView(),
     );
   }
 
   Widget _buildLoggedInView() {
-    return Center(
-      child: Padding(
+    return RefreshIndicator(
+      onRefresh: _presenter.refreshRewards,
+      child: ListView(
         padding: const EdgeInsets.all(24.0),
+        children: [
+          const Icon(Icons.account_circle, size: 80, color: Colors.green),
+          const SizedBox(height: 24),
+          Text(
+            'Signed in as',
+            style: Theme.of(context).textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _user?.email ?? 'Unknown',
+            style: Theme.of(context).textTheme.headlineSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          _buildPointsCard(),
+          const SizedBox(height: 20),
+          Text(
+            'Activity Summary',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Reports',
+                  value: '${_user?.reportCount ?? 0}',
+                  subtitle: '1 point each',
+                  icon: Icons.report_problem_outlined,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Pickups',
+                  value: '${_user?.pickupCount ?? 0}',
+                  subtitle: '2 points each',
+                  icon: Icons.volunteer_activism_outlined,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Redeem Shop',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Placeholder reward options for your class prototype.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+          ),
+          const SizedBox(height: 16),
+          ..._rewardOptions.map((reward) => _buildRewardTile(reward)),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonal(
+              onPressed: _presenter.signOut,
+              child: const Text('Sign Out'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPointsCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            colors: [
+              Colors.green.shade400,
+              Colors.green.shade700,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.account_circle, size: 80, color: Colors.green),
-            const SizedBox(height: 24),
-            Text(
-              'Signed in as',
-              style: Theme.of(context).textTheme.titleMedium,
+            const Text(
+              'Reward Points',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              _user?.email ?? 'Unknown',
+              '${_user?.totalPoints ?? 0}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 40,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Earn points by reporting and later by completing pickups.',
+              style: TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.green, size: 28),
+            const SizedBox(height: 10),
+            Text(
+              value,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.tonal(
-                onPressed: _presenter.signOut,
-                child: const Text('Sign Out'),
-              ),
+            const SizedBox(height: 4),
+            Text(title),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRewardTile(Map<String, dynamic> reward) {
+    final int userPoints = _user?.totalPoints ?? 0;
+    final int cost = reward['points'] as int;
+    final bool canAfford = userPoints >= cost;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: CircleAvatar(
+          backgroundColor: Colors.green.shade50,
+          child: Icon(
+            reward['icon'] as IconData,
+            color: Colors.green,
+          ),
+        ),
+        title: Text(reward['title'] as String),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(reward['description'] as String),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$cost pts',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            ElevatedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      canAfford
+                          ? 'Prototype only: redeem flow not implemented yet.'
+                          : 'Not enough points yet.',
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Redeem'),
             ),
           ],
         ),
@@ -119,8 +319,8 @@ class _AccountViewState extends State<AccountView>
   Widget _buildLoggedOutView() {
     final heading = _isSignUpMode ? 'Create Account' : 'Sign In';
     final description = _isSignUpMode
-        ? 'Create a new account to track your reports.\nYou can report needles without an account.'
-        : 'You can report needles without an account.\nSign in to track your reports.';
+        ? 'Create a new account to track reports, rewards, and future pickups.\nYou can report needles without an account.'
+        : 'You can report needles without an account.\nSign in to track rewards and activity.';
     final primaryLabel = _isSignUpMode ? 'Create Account' : 'Sign In';
     final togglePrompt = _isSignUpMode
         ? 'Already have an account? '
@@ -147,9 +347,9 @@ class _AccountViewState extends State<AccountView>
           const SizedBox(height: 8),
           Text(
             description,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -170,9 +370,8 @@ class _AccountViewState extends State<AccountView>
               labelText: 'Password',
               border: const OutlineInputBorder(),
               prefixIcon: const Icon(Icons.lock_outline),
-              helperText: _isSignUpMode
-                  ? 'Must be at least 6 characters'
-                  : null,
+              helperText:
+                  _isSignUpMode ? 'Must be at least 6 characters' : null,
             ),
             obscureText: true,
             textInputAction: TextInputAction.done,
@@ -182,6 +381,7 @@ class _AccountViewState extends State<AccountView>
             onPressed: () {
               final email = _emailController.text.trim();
               final password = _passwordController.text;
+
               if (_isSignUpMode) {
                 _presenter.signUpWithEmail(email, password);
               } else {
@@ -200,9 +400,9 @@ class _AccountViewState extends State<AccountView>
                 child: Text(
                   toggleLabel,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               ),
             ],
