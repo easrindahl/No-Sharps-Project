@@ -17,6 +17,8 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
+final supabase = Supabase.instance.client;
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -31,6 +33,13 @@ class MyApp extends StatelessWidget {
         '/report': (context) => const ReportView(),
       },
       home: const NavigationShell(),
+      routes: {
+        '/report': (context) => CreateReportView(),
+        
+        //takes user to cleaup service page
+        '/cleanup_services': (context) => CleanupServicesView(),
+      },
+    
     );
   }
 }

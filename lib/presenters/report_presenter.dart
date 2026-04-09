@@ -17,6 +17,7 @@ class ReportPresenter {
     return objectPath;
   }
 
+<<<<<<< HEAD
   String? getImageUrl(Map<String, dynamic> report) {
     String? path = report['image_path'] as String?;
     if (path == null || path.isEmpty) return null;
@@ -25,6 +26,8 @@ class ReportPresenter {
     return supabase.storage.from('needles').getPublicUrl(path);
   }
 
+=======
+>>>>>>> 775cd5e410fd2781a5cd83d501aed83614e6501d
   Future<void> submitReport({
     required String? imagePath,
     required String location,
@@ -35,6 +38,7 @@ class ReportPresenter {
       'created_at': DateTime.now().toIso8601String(),
     });
   }
+<<<<<<< HEAD
 
   Future<List<Map<String, dynamic>>> fetchReports({int limit = 10}) async {
     final rows = await supabase
@@ -44,4 +48,6 @@ class ReportPresenter {
         .limit(limit);
     return List<Map<String, dynamic>>.from(rows as List);
   }
+=======
+>>>>>>> 775cd5e410fd2781a5cd83d501aed83614e6501d
 }
