@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../presenters/report_presenter.dart';
+import 'report_detail_view.dart'; // Import ReportDetailView
 
 class MapView extends StatefulWidget {
   const MapView({super.key});
@@ -81,6 +82,7 @@ class _MapViewState extends State<MapView> {
               loading: _feedLoading,
               error: _feedError,
               onRetry: _loadFeed,
+              presenter: _presenter, // Pass the presenter to _ReportsFeed
             ),
           ),
         ],
@@ -94,12 +96,14 @@ class _ReportsFeed extends StatelessWidget {
     required this.reports,
     required this.loading,
     required this.error,
-    required this.onRetry,
+    required this.onRetry, 
+    required this.presenter, // Add presenter to _ReportsFeed
   });
 
   final List<Map<String, dynamic>> reports;
   final bool loading;
   final String? error;
+  final ReportPresenter presenter; // Add presenter to _ReportsFeed
   final VoidCallback onRetry;
 
   @override
@@ -165,8 +169,11 @@ class _ReportsFeed extends StatelessWidget {
             itemCount: reports.length,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
-              final row = reports[index];
-              return _ReportFeedTile(row: row);
+              final report = reports[index];
+              return _ReportFeedTile(
+                report: report,
+                presenter: presenter,
+              );
             },
           ),
         ),
@@ -174,17 +181,17 @@ class _ReportsFeed extends StatelessWidget {
     );
   }
 }
-
 class _ReportFeedTile extends StatelessWidget {
-  const _ReportFeedTile({required this.row});
+  const _ReportFeedTile({required this.report, required this.presenter});
 
-  final Map<String, dynamic> row;
+  final Map<String, dynamic> report;
+  final ReportPresenter presenter;
 
   @override
   Widget build(BuildContext context) {
-    final location = row['location'] as String? ?? 'Unknown location';
-    final imageUrl = row['image_url'] as String?;
-    final createdRaw = row['created_at'] as String?;
+    final location = report['location'] as String? ?? 'Unknown location';
+    final imageUrl = presenter.getImageUrl(report);
+    final createdRaw = report['created_at'] as String?;
     String subtitle = '';
     if (createdRaw != null) {
       final parsed = DateTime.tryParse(createdRaw);
@@ -192,54 +199,63 @@ class _ReportFeedTile extends StatelessWidget {
         subtitle = MaterialLocalizations.of(context).formatMediumDate(parsed);
       }
     }
-
-    return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (imageUrl != null && imageUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  imageUrl,
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReportDetailView(report: report, presenter: presenter),
+          ),
+        );
+      },
+      child: Material(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (imageUrl != null && imageUrl.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    imageUrl,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => _placeholderThumb(context),
-                ),
-              )
-            else
-              _placeholderThumb(context),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    location,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
                   ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                )
+              else
+                _placeholderThumb(context),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      location,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
                     ),
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

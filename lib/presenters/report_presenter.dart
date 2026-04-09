@@ -16,18 +16,27 @@ class ReportPresenter {
     return objectPath;
   }
 
+  String? getImageUrl(Map<String, dynamic> report) {
+    final imagePath = report['image_path'] as String?;
+    if (imagePath == null || imagePath.isEmpty) {
+      return null;
+    }
+    return supabase.storage.from('needles').getPublicUrl(imagePath);
+  }
+
   Future<void> submitReport({
     required String? imagePath,
     required String location,
   }) async {
     final currentUser = supabase.auth.currentUser;
-
-    await supabase.from('reports').insert({
+    
+    final Map<String, dynamic> reportData = {
       'image_path': imagePath,
       'location': location,
       'created_at': DateTime.now().toIso8601String(),
-      'user_id': currentUser?.id,
-    });
+    };
+
+    await supabase.from('reports').insert(reportData);
 
     if (currentUser != null) {
       await _awardReportPoint(currentUser.id);
