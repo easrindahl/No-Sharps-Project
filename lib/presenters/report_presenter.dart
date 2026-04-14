@@ -91,7 +91,7 @@ class ReportPresenter {
   Future<List<Map<String, dynamic>>> fetchReports({int limit = 10}) async {
     final rows = await supabase
         .from('reports')
-        .select()
+        .select('id, location, created_at, image_path, latitude, longitude')
         .order('created_at', ascending: false)
         .limit(limit);
     return List<Map<String, dynamic>>.from(rows as List);
