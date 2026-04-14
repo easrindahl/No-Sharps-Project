@@ -27,13 +27,18 @@ class ReportPresenter {
   Future<void> submitReport({
     required String? imagePath,
     required String location,
+    required double latitude,
+    required double longitude,
   }) async {
     final currentUser = supabase.auth.currentUser;
     
     final Map<String, dynamic> reportData = {
       'image_path': imagePath,
       'location': location,
+      'latitude': latitude,
+      'longitude': longitude,
       'created_at': DateTime.now().toIso8601String(),
+      'user_id': currentUser?.id,
     };
 
     await supabase.from('reports').insert(reportData);

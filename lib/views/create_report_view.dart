@@ -6,17 +6,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../presenters/report_presenter.dart';
 
 class LocationSuggestion {
   final String description;
   final String mainText;
   final String secondaryText;
+  final String placeId;
 
   LocationSuggestion({
     required this.description,
     required this.mainText,
     required this.secondaryText,
+    required this.placeId,
   });
 
   factory LocationSuggestion.fromJson(Map<String, dynamic> json) {
@@ -26,6 +29,7 @@ class LocationSuggestion {
       secondaryText: json['types']?.isNotEmpty == true
           ? (json['types'] as List).first.toString()
           : '',
+      placeId: json['place_id'] ?? '',
     );
   }
 }
@@ -43,6 +47,10 @@ class _CreateReportViewState extends State<CreateReportView> {
   File? _imageFile;
   bool _loading = false;
   bool _gettingLocation = false;
+  double? _latitude;
+  double? _longitude;
+  String? _selectedPlaceId;
+  bool _settingLocationProgrammatically = false;
   final _picker = ImagePicker();
   late final ReportPresenter presenter;
   final _locationController = TextEditingController();
@@ -63,14 +71,53 @@ class _CreateReportViewState extends State<CreateReportView> {
   }
 
   void _onLocationChanged() {
+    if (_settingLocationProgrammatically) return;
+
+    if (_selectedPlaceId != null && _locationController.text != _location) {
+      setState(() {
+        _selectedPlaceId = null;
+        _latitude = null;
+        _longitude = null;
+      });
+    }
+
     if (_locationController.text.isEmpty) {
       setState(() {
         _locationSuggestions = [];
         _showSuggestions = false;
+        _selectedPlaceId = null;
+        _latitude = null;
+        _longitude = null;
       });
       return;
     }
     _getLocationSuggestions(_locationController.text);
+  }
+
+  Future<LatLng?> _fetchPlaceLatLng(String placeId) async {
+    if (placeId.isEmpty) return null;
+    try {
+      const String googleApiKey = 'AIzaSyCqQ5m2e49uP6D_HfDL-W2otxC3wLuVKbQ';
+      final url =
+          'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&fields=geometry&key=$googleApiKey';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Accept': 'application/json'},
+      );
+      if (response.statusCode != 200) return null;
+
+      final json = jsonDecode(response.body);
+      if (json['status'] != 'OK') return null;
+      final result = json['result'];
+      final geometry = result?['geometry'];
+      final location = geometry?['location'];
+      final lat = (location?['lat'] as num?)?.toDouble();
+      final lng = (location?['lng'] as num?)?.toDouble();
+      if (lat == null || lng == null) return null;
+      return LatLng(lat, lng);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _getLocationSuggestions(String input) async {
@@ -150,9 +197,14 @@ class _CreateReportViewState extends State<CreateReportView> {
         final address =
             '${place.street}, ${place.locality}, ${place.administrativeArea}, ${place.postalCode}';
         setState(() {
+          _settingLocationProgrammatically = true;
           _locationController.text = address;
           _location = address;
+          _selectedPlaceId = null;
+          _latitude = position.latitude;
+          _longitude = position.longitude;
         });
+        _settingLocationProgrammatically = false;
       }
     } catch (e) {
       if (!mounted) return;
@@ -336,12 +388,48 @@ class _CreateReportViewState extends State<CreateReportView> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       onTap: () {
-                                        setState(() {
-                                          _locationController.text =
-                                              suggestion.description;
-                                          _location = suggestion.description;
-                                          _showSuggestions = false;
-                                        });
+                                        () async {
+                                          setState(() {
+                                            _settingLocationProgrammatically =
+                                                true;
+                                            _locationController.text =
+                                                suggestion.description;
+                                            _location = suggestion.description;
+                                            _selectedPlaceId =
+                                                suggestion.placeId.isNotEmpty
+                                                    ? suggestion.placeId
+                                                    : null;
+                                            _showSuggestions = false;
+                                          });
+                                          _settingLocationProgrammatically =
+                                              false;
+
+                                          final messenger =
+                                              ScaffoldMessenger.of(context);
+                                          final coords = await _fetchPlaceLatLng(
+                                            suggestion.placeId,
+                                          );
+                                          if (!mounted) return;
+                                          if (coords == null) {
+                                            setState(() {
+                                              _selectedPlaceId = null;
+                                              _latitude = null;
+                                              _longitude = null;
+                                            });
+                                            messenger.showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Couldn’t resolve that address; we’ll use your current location on submit.',
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          setState(() {
+                                            _latitude = coords.latitude;
+                                            _longitude = coords.longitude;
+                                          });
+                                        }();
                                       },
                                     );
                                   },
@@ -413,9 +501,40 @@ class _CreateReportViewState extends State<CreateReportView> {
           imagePath = await presenter.uploadImage(_imageFile!);
         }
 
+        double? latitude = _latitude;
+        double? longitude = _longitude;
+
+        if (latitude == null || longitude == null) {
+          // User chose free-typed location; fallback to GPS coordinates.
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          }
+          if (permission == LocationPermission.denied ||
+              permission == LocationPermission.deniedForever) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Enable location to submit this report (required for map node).',
+                ),
+              ),
+            );
+            return;
+          }
+
+          final pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+          latitude = pos.latitude;
+          longitude = pos.longitude;
+        }
+
         await presenter.submitReport(
           imagePath: imagePath,
           location: _location ?? '',
+          latitude: latitude,
+          longitude: longitude,
         );
 
         if (!mounted) return;
