@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/disposal_box_model.dart';
 import '../models/report_model.dart';
 import '../presenters/report_presenter.dart';
+import 'report_detail_view.dart'; // Import ReportDetailView
 import '../presenters/map_presenter.dart';
 
 class MapView extends StatefulWidget {
@@ -80,8 +81,7 @@ class _MapViewState extends State<MapView> {
     for (final r in reports) {
       if (!r.hasCoordinates) continue;
       final created = r.createdAt;
-      final createdLabel =
-          created == null ? '' : loc.formatMediumDate(created);
+      final createdLabel = created == null ? '' : loc.formatMediumDate(created);
       final isSelected = r.id == _selectedReportId;
 
       markers.add(
@@ -93,7 +93,9 @@ class _MapViewState extends State<MapView> {
             isSelected ? BitmapDescriptor.hueRose : BitmapDescriptor.hueRed,
           ),
           infoWindow: InfoWindow(
-            title: r.location?.isNotEmpty == true ? r.location : 'Needle report',
+            title: r.location?.isNotEmpty == true
+                ? r.location
+                : 'Needle report',
             snippet: createdLabel.isEmpty ? null : createdLabel,
           ),
         ),
@@ -170,6 +172,16 @@ class _MapViewState extends State<MapView> {
     );
   }
 
+  void _openReportDetails(Map<String, dynamic> report) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            ReportDetailView(report: report, presenter: _presenter),
+      ),
+    );
+  }
+
   void _onMapTap(LatLng _) {
     if (_selectedReportId == null) return;
     setState(() {
@@ -232,8 +244,10 @@ class _MapViewState extends State<MapView> {
               loading: _feedLoading,
               error: _feedError,
               onRetry: _loadFeed,
+              presenter: _presenter,
               selectedReportId: _selectedReportId,
               onReportTap: _onFeedReportTap,
+              onOpenDetails: _openReportDetails,
             ),
           ),
         ],
@@ -248,16 +262,20 @@ class _ReportsFeed extends StatelessWidget {
     required this.loading,
     required this.error,
     required this.onRetry,
+    required this.presenter,
     required this.selectedReportId,
     required this.onReportTap,
+    required this.onOpenDetails,
   });
 
   final List<Map<String, dynamic>> reports;
   final bool loading;
   final String? error;
+  final ReportPresenter presenter;
   final VoidCallback onRetry;
   final String? selectedReportId;
   final void Function(Map<String, dynamic> row) onReportTap;
+  final void Function(Map<String, dynamic> report) onOpenDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -322,14 +340,16 @@ class _ReportsFeed extends StatelessWidget {
             itemCount: reports.length,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
-              final row = reports[index];
-              final id = row['id']?.toString();
+              final report = reports[index];
+              final id = report['id']?.toString();
               final isSelected =
                   id != null && selectedReportId != null && id == selectedReportId;
               return _ReportFeedTile(
-                row: row,
+                report: report,
+                presenter: presenter,
                 isSelected: isSelected,
-                onTap: () => onReportTap(row),
+                onTap: () => onReportTap(report),
+                onOpenDetails: () => onOpenDetails(report),
               );
             },
           ),
@@ -341,29 +361,33 @@ class _ReportsFeed extends StatelessWidget {
 
 class _ReportFeedTile extends StatelessWidget {
   const _ReportFeedTile({
-    required this.row,
+    required this.report,
+    required this.presenter,
     required this.isSelected,
     required this.onTap,
+    required this.onOpenDetails,
   });
 
-  final Map<String, dynamic> row;
+  final Map<String, dynamic> report;
+  final ReportPresenter presenter;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback onOpenDetails;
 
   @override
   Widget build(BuildContext context) {
-    final location = row['location'] as String? ?? 'Unknown location';
-    final imagePath = row['image_path'] as String?;
-    final imageUrl = _resolveImageUrl(imagePath);
-    final createdRaw = row['created_at'];
+    final location = report['location'] as String? ?? 'Unknown location';
+    final imageUrl = presenter.getImageUrl(report);
+    final createdRaw = report['created_at'] as String?;
     String subtitle = '';
-    final parsed = _parseCreatedAt(createdRaw);
-    if (parsed != null) {
-      subtitle = MaterialLocalizations.of(context).formatMediumDate(parsed);
+    if (createdRaw != null) {
+      final parsed = DateTime.tryParse(createdRaw);
+      if (parsed != null) {
+        subtitle = MaterialLocalizations.of(context).formatMediumDate(parsed);
+      }
     }
 
     final borderColor = Theme.of(context).colorScheme.primary;
-
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(12),
@@ -374,9 +398,7 @@ class _ReportFeedTile extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: isSelected
-                ? Border.all(color: borderColor, width: 2)
-                : null,
+            border: isSelected ? Border.all(color: borderColor, width: 2) : null,
           ),
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -406,23 +428,27 @@ class _ReportFeedTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
+                              fontWeight: FontWeight.w500,
+                            ),
                       ),
                       if (subtitle.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
                           subtitle,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Details',
+                  onPressed: onOpenDetails,
+                  icon: const Icon(Icons.chevron_right),
                 ),
               ],
             ),
@@ -445,22 +471,5 @@ class _ReportFeedTile extends StatelessWidget {
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
-  }
-
-  String? _resolveImageUrl(String? imagePath) {
-    if (imagePath == null || imagePath.isEmpty) return null;
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-      return imagePath;
-    }
-    return Supabase.instance.client.storage.from('needles').getPublicUrl(
-          imagePath,
-        );
-  }
-
-  DateTime? _parseCreatedAt(Object? createdAt) {
-    if (createdAt == null) return null;
-    if (createdAt is DateTime) return createdAt;
-    if (createdAt is String) return DateTime.tryParse(createdAt);
-    return null;
   }
 }
