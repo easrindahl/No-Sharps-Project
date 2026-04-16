@@ -11,10 +11,7 @@ class ReportDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     // Extract data from the report map
     final location = report['location'] as String? ?? 'Unknown location';
-    
-    // Use the presenter to convert the image_path into a viewable URL.
-    // This handles your requirement of images being stored as paths, not URLs
-    final imageUrl = presenter.getImageUrl(report);
+
     final createdRaw = report['created_at'];
     final createdAt = _parseCreatedAt(createdRaw);
     final submittedDate = createdAt != null
@@ -35,36 +32,47 @@ class ReportDetailView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (imageUrl != null && imageUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  imageUrl,
-                  key: ValueKey(imageUrl), // Bypass potential cache issues
-                  height: 260,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return SizedBox(
-                      height: 260,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value: progress.expectedTotalBytes != null
-                              ? progress.cumulativeBytesLoaded /
-                                  progress.expectedTotalBytes!
-                              : null,
+            FutureBuilder<String?>(
+              future: presenter.getDisplayImageUrl(report),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildImageLoading(context);
+                }
+
+                final imageUrl = snapshot.data;
+                if (imageUrl == null || imageUrl.isEmpty) {
+                  return _buildImagePlaceholder(context);
+                }
+
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    imageUrl,
+                    key: ValueKey(imageUrl),
+                    height: 260,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return SizedBox(
+                        height: 260,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: progress.expectedTotalBytes != null
+                                ? progress.cumulativeBytesLoaded /
+                                    progress.expectedTotalBytes!
+                                : null,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    // Log the detailed error to the console
-                    return _buildImagePlaceholder(context, hasError: true);
-                  },
-                ),
-              )
-            else
-              _buildImagePlaceholder(context),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      debugPrint('Report image failed to load: $imageUrl | $error');
+                      return _buildImagePlaceholder(context, hasError: true);
+                    },
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 20),
             Text(
               'Location',
@@ -120,6 +128,19 @@ class ReportDetailView extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageLoading(BuildContext context) {
+    return Container(
+      height: 260,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(),
       ),
     );
   }

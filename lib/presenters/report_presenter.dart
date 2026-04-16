@@ -16,12 +16,107 @@ class ReportPresenter {
     return objectPath;
   }
 
+  Future<String?> getDisplayImageUrl(Map<String, dynamic> report) async {
+    final rawImage = (report['image_path'] ?? report['image_url']) as String?;
+
+    final extractedPath = _extractStoragePath(rawImage);
+    if (extractedPath != null) {
+      return _buildSignedOrPublicUrl(extractedPath);
+    }
+
+    final parsed = Uri.tryParse(rawImage ?? '');
+    if (parsed != null && parsed.hasScheme) {
+      if (parsed.scheme == 'http' || parsed.scheme == 'https') {
+        return rawImage;
+      }
+    }
+
+    final imagePath = _normalizeImagePath(rawImage);
+    if (imagePath == null || imagePath.isEmpty) {
+      return null;
+    }
+
+    return _buildSignedOrPublicUrl(imagePath);
+  }
+
   String? getImageUrl(Map<String, dynamic> report) {
-    final imagePath = report['image_path'] as String?;
+    final rawImage = (report['image_path'] ?? report['image_url']) as String?;
+    final extractedPath = _extractStoragePath(rawImage);
+    if (extractedPath != null) {
+      return supabase.storage.from('needles').getPublicUrl(extractedPath);
+    }
+
+    final parsed = Uri.tryParse(rawImage ?? '');
+    if (parsed != null && parsed.hasScheme) {
+      if (parsed.scheme == 'http' || parsed.scheme == 'https') {
+        return rawImage;
+      }
+    }
+
+    final imagePath = _normalizeImagePath(rawImage);
     if (imagePath == null || imagePath.isEmpty) {
       return null;
     }
     return supabase.storage.from('needles').getPublicUrl(imagePath);
+  }
+
+  Future<String?> _buildSignedOrPublicUrl(String objectPath) async {
+    final storage = supabase.storage.from('needles');
+    try {
+      return await storage.createSignedUrl(objectPath, 3600);
+    } catch (_) {
+      return storage.getPublicUrl(objectPath);
+    }
+  }
+
+  String? _extractStoragePath(String? rawPath) {
+    if (rawPath == null) return null;
+
+    final parsed = Uri.tryParse(rawPath.trim());
+    if (parsed == null || !parsed.hasScheme) return null;
+
+    final segments = parsed.pathSegments;
+    if (segments.isEmpty) return null;
+
+    final bucketIndex = segments.indexOf('needles');
+    if (bucketIndex == -1 || bucketIndex + 1 >= segments.length) {
+      return null;
+    }
+
+    // Supports:
+    // /storage/v1/object/public/needles/<path>
+    // /storage/v1/object/sign/needles/<path>
+    // /storage/v1/object/authenticated/needles/<path>
+    final pathAfterBucket = segments.sublist(bucketIndex + 1).join('/');
+    return _normalizeImagePath(pathAfterBucket);
+  }
+
+  String? _normalizeImagePath(String? rawPath) {
+    if (rawPath == null) return null;
+
+    final trimmed = Uri.decodeComponent(rawPath.trim());
+    if (trimmed.isEmpty) return null;
+
+    var normalized = trimmed.replaceFirst(RegExp(r'^/+'), '');
+
+    // Handle values saved as full public-storage path.
+    const storagePrefix = 'storage/v1/object/public/needles/';
+    if (normalized.startsWith(storagePrefix)) {
+      normalized = normalized.substring(storagePrefix.length);
+    }
+
+    // Handle values saved with bucket name included.
+    const bucketPrefix = 'needles/';
+    if (normalized.startsWith(bucketPrefix)) {
+      normalized = normalized.substring(bucketPrefix.length);
+    }
+
+    // Legacy rows may store only the filename; images live in needles/reports.
+    if (!normalized.contains('/')) {
+      normalized = 'reports/$normalized';
+    }
+
+    return normalized;
   }
 
   Future<void> submitReport({
@@ -44,7 +139,12 @@ class ReportPresenter {
     await supabase.from('reports').insert(reportData);
 
     if (currentUser != null) {
-      await _awardReportPoint(currentUser.id);
+      try {
+        // Keep report submission successful even if rewards RLS blocks writes.
+        await _awardReportPoint(currentUser.id);
+      } on PostgrestException catch (_) {
+        // Rewards are best-effort until user_rewards policies are configured.
+      }
     }
   }
 

@@ -377,7 +377,6 @@ class _ReportFeedTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = report['location'] as String? ?? 'Unknown location';
-    final imageUrl = presenter.getImageUrl(report);
     final createdRaw = report['created_at'] as String?;
     String subtitle = '';
     if (createdRaw != null) {
@@ -405,19 +404,26 @@ class _ReportFeedTile extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (imageUrl != null && imageUrl.isNotEmpty)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      imageUrl,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _placeholderThumb(context),
-                    ),
-                  )
-                else
-                  _placeholderThumb(context),
+                FutureBuilder<String?>(
+                  future: presenter.getDisplayImageUrl(report),
+                  builder: (context, snapshot) {
+                    final imageUrl = snapshot.data;
+                    if (imageUrl == null || imageUrl.isEmpty) {
+                      return _placeholderThumb(context);
+                    }
+
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => _placeholderThumb(context),
+                      ),
+                    );
+                  },
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

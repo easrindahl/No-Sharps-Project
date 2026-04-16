@@ -1,0 +1,11 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = true
+	symlinks = false
+	ignorecase = true
+[remote "origin"]
+	url = https://github.umn.edu/umdInnovation-sp26/Sharps
+	tagOpt = --no-tags
+	fetch = +refs/*:refs/*
+	mirror = true
