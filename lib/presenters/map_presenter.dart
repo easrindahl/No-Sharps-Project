@@ -10,7 +10,9 @@ class MapPresenter {
   Future<List<ReportModel>> fetchReportMarkers({int limit = 200}) async {
     final rows = await supabase
         .from('reports')
-        .select('id, location, created_at, image_path, latitude, longitude')
+        .select(
+          'id, location, created_at, image_path, latitude, longitude, status, claimed_by, claimed_at',
+        )
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
         .order('created_at', ascending: false)
