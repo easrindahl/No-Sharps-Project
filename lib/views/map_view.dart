@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/disposal_box_model.dart';
 import '../models/report_model.dart';
 import '../presenters/report_presenter.dart';
-import 'report_detail_view.dart'; // Import ReportDetailView
+import 'report_detail_view.dart';
 import '../presenters/map_presenter.dart';
 
 class MapView extends StatefulWidget {
@@ -80,9 +80,11 @@ class _MapViewState extends State<MapView> {
 
     for (final r in reports) {
       if (!r.hasCoordinates) continue;
+
       final created = r.createdAt;
       final createdLabel = created == null ? '' : loc.formatMediumDate(created);
       final isSelected = r.id == _selectedReportId;
+      final statusUi = _presenter.statusUi(r.status);
 
       markers.add(
         Marker(
@@ -90,13 +92,13 @@ class _MapViewState extends State<MapView> {
           position: LatLng(r.latitude!, r.longitude!),
           zIndexInt: isSelected ? 2 : 1,
           icon: BitmapDescriptor.defaultMarkerWithHue(
-            isSelected ? BitmapDescriptor.hueRose : BitmapDescriptor.hueRed,
+            isSelected ? BitmapDescriptor.hueRose : statusUi.markerHue,
           ),
           infoWindow: InfoWindow(
-            title: r.location?.isNotEmpty == true
-                ? r.location
-                : 'Needle report',
-            snippet: createdLabel.isEmpty ? null : createdLabel,
+            title: r.location?.isNotEmpty == true ? r.location : 'Needle report',
+            snippet: createdLabel.isEmpty
+                ? statusUi.label
+                : '${statusUi.label} • $createdLabel',
           ),
         ),
       );
@@ -172,14 +174,18 @@ class _MapViewState extends State<MapView> {
     );
   }
 
-  void _openReportDetails(Map<String, dynamic> report) {
-    Navigator.push(
+  Future<void> _openReportDetails(Map<String, dynamic> report) async {
+    final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) =>
             ReportDetailView(report: report, presenter: _presenter),
       ),
     );
+
+    if (changed == true) {
+      await _refreshAll();
+    }
   }
 
   void _onMapTap(LatLng _) {
@@ -275,7 +281,7 @@ class _ReportsFeed extends StatelessWidget {
   final VoidCallback onRetry;
   final String? selectedReportId;
   final void Function(Map<String, dynamic> row) onReportTap;
-  final void Function(Map<String, dynamic> report) onOpenDetails;
+  final Future<void> Function(Map<String, dynamic> report) onOpenDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -317,8 +323,8 @@ class _ReportsFeed extends StatelessWidget {
         child: Text(
           'No reports yet',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
         ),
       );
     }
@@ -329,9 +335,10 @@ class _ReportsFeed extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Text(
             'Recent reports',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         Expanded(
@@ -386,7 +393,10 @@ class _ReportFeedTile extends StatelessWidget {
       }
     }
 
+    final status = presenter.statusUi(report['pickup_status'] as String?);
+    final statusColor = _statusColor(context, report['status'] as String?);
     final borderColor = Theme.of(context).colorScheme.primary;
+
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(12),
@@ -437,17 +447,43 @@ class _ReportFeedTile extends StatelessWidget {
                               fontWeight: FontWeight.w500,
                             ),
                       ),
-                      if (subtitle.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.14),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              status.label,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
                               ),
-                        ),
-                      ],
+                            ),
+                          ),
+                          if (subtitle.isNotEmpty)
+                            Text(
+                              subtitle,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -462,6 +498,18 @@ class _ReportFeedTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _statusColor(BuildContext context, String? rawStatus) {
+    switch ((rawStatus ?? 'open').trim().toLowerCase()) {
+      case 'in_progress':
+        return Colors.orange;
+      case 'completed':
+        return Colors.green;
+      case 'open':
+      default:
+        return Colors.red;
+    }
   }
 
   Widget _placeholderThumb(BuildContext context) {
