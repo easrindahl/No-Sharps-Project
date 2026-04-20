@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ReportPresenter {
@@ -7,8 +8,8 @@ class ReportPresenter {
 
   Future<String?> uploadImage(File imageFile) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final randomId = (DateTime.now().microsecondsSinceEpoch % 1000000)
-        .toString();
+    final randomId =
+        (DateTime.now().microsecondsSinceEpoch % 1000000).toString();
     final objectPath = 'reports/needle_${randomId}_$timestamp.jpg';
     final storage = supabase.storage.from('needles');
     final res = await storage.upload(objectPath, imageFile);
@@ -83,10 +84,6 @@ class ReportPresenter {
       return null;
     }
 
-    // Supports:
-    // /storage/v1/object/public/needles/<path>
-    // /storage/v1/object/sign/needles/<path>
-    // /storage/v1/object/authenticated/needles/<path>
     final pathAfterBucket = segments.sublist(bucketIndex + 1).join('/');
     return _normalizeImagePath(pathAfterBucket);
   }
@@ -99,19 +96,16 @@ class ReportPresenter {
 
     var normalized = trimmed.replaceFirst(RegExp(r'^/+'), '');
 
-    // Handle values saved as full public-storage path.
     const storagePrefix = 'storage/v1/object/public/needles/';
     if (normalized.startsWith(storagePrefix)) {
       normalized = normalized.substring(storagePrefix.length);
     }
 
-    // Handle values saved with bucket name included.
     const bucketPrefix = 'needles/';
     if (normalized.startsWith(bucketPrefix)) {
       normalized = normalized.substring(bucketPrefix.length);
     }
 
-    // Legacy rows may store only the filename; images live in needles/reports.
     if (!normalized.contains('/')) {
       normalized = 'reports/$normalized';
     }
@@ -126,7 +120,7 @@ class ReportPresenter {
     required double longitude,
   }) async {
     final currentUser = supabase.auth.currentUser;
-    
+
     final Map<String, dynamic> reportData = {
       'image_path': imagePath,
       'location': location,
@@ -134,17 +128,17 @@ class ReportPresenter {
       'longitude': longitude,
       'created_at': DateTime.now().toIso8601String(),
       'user_id': currentUser?.id,
+      'pickup_status': 'open',
+      'pickup_user_id': null,
+      'pickup_claimed_at': null,
     };
 
     await supabase.from('reports').insert(reportData);
 
     if (currentUser != null) {
       try {
-        // Keep report submission successful even if rewards RLS blocks writes.
         await _awardReportPoint(currentUser.id);
-      } on PostgrestException catch (_) {
-        // Rewards are best-effort until user_rewards policies are configured.
-      }
+      } on PostgrestException catch (_) {}
     }
   }
 
@@ -205,9 +199,115 @@ class ReportPresenter {
   Future<List<Map<String, dynamic>>> fetchReports({int limit = 10}) async {
     final rows = await supabase
         .from('reports')
-        .select('id, location, created_at, image_path, latitude, longitude')
+        .select(
+          'id, location, created_at, image_path, latitude, longitude, pickup_status, pickup_user_id, pickup_claimed_at',
+        )
         .order('created_at', ascending: false)
         .limit(limit);
+
     return List<Map<String, dynamic>>.from(rows as List);
   }
+
+  Future<void> markReportInProgress(String reportId) async {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('You must be signed in to claim a pickup.');
+    }
+
+    await supabase.from('reports').update({
+      'pickup_status': 'in_progress',
+      'pickup_user_id': currentUser.id,
+      'pickup_claimed_at': DateTime.now().toIso8601String(),
+    }).eq('id', reportId);
+  }
+
+  Future<void> completeDisposalWithQr({
+    required Map<String, dynamic> report,
+    required String qrValue,
+  }) async {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('You must be signed in to confirm disposal.');
+    }
+
+    final reportId = report['id']?.toString();
+    if (reportId == null || reportId.isEmpty) {
+      throw Exception('Invalid report id.');
+    }
+
+    final disposalBoxId = _extractDisposalBoxId(qrValue);
+
+    await supabase.from('disposal_events').insert({
+      'report_id': reportId,
+      'disposed_by': currentUser.id,
+      'disposal_box_id': disposalBoxId,
+      'qr_code': qrValue,
+      'location': report['location'],
+      'image_path': report['image_path'],
+      'latitude': report['latitude'],
+      'longitude': report['longitude'],
+      'reported_created_at': report['created_at'],
+      'disposed_at': DateTime.now().toIso8601String(),
+    });
+
+    try {
+      await awardPickupPoints(currentUser.id);
+    } on PostgrestException catch (_) {}
+
+    await supabase.from('reports').delete().eq('id', reportId);
+  }
+
+  String _extractDisposalBoxId(String qrValue) {
+    final trimmed = qrValue.trim();
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null) {
+      final qp = uri.queryParameters;
+      if ((qp['box_id'] ?? '').trim().isNotEmpty) {
+        return qp['box_id']!.trim();
+      }
+      if ((qp['id'] ?? '').trim().isNotEmpty) {
+        return qp['id']!.trim();
+      }
+    }
+
+    if (trimmed.contains('box:')) {
+      return trimmed.split('box:').last.trim();
+    }
+
+    return trimmed;
+  }
+
+  ReportStatusUiData statusUi(String? rawStatus) {
+    final status = (rawStatus ?? 'open').trim().toLowerCase();
+
+    switch (status) {
+      case 'in_progress':
+        return const ReportStatusUiData(
+          label: 'In Progress',
+          markerHue: 30.0,
+        );
+      case 'completed':
+        return const ReportStatusUiData(
+          label: 'Completed',
+          markerHue: 120.0,
+        );
+      case 'open':
+      default:
+        return const ReportStatusUiData(
+          label: 'Open',
+          markerHue: 0.0,
+        );
+    }
+  }
+}
+
+class ReportStatusUiData {
+  final String label;
+  final double markerHue;
+
+  const ReportStatusUiData({
+    required this.label,
+    required this.markerHue,
+  });
 }
