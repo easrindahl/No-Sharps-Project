@@ -108,6 +108,11 @@ class AccountPresenter {
   }
 
   Future<void> signInWithEmail(String email, String password) async {
+    if (email.isEmpty || password.isEmpty) {
+      _view.showError('Please enter both email and password.');
+      return;
+    }
+
     _view.showLoading();
     try {
       final response = await _supabase.auth.signInWithPassword(
@@ -133,6 +138,16 @@ class AccountPresenter {
   }
 
   Future<void> signUpWithEmail(String email, String password) async {
+    if (email.isEmpty || password.isEmpty) {
+      _view.showError('Please enter both email and password.');
+      return;
+    }
+
+    if (password.length < 6) {
+      _view.showError('Password must be at least 6 characters.');
+      return;
+    }
+
     _view.showLoading();
     try {
       final response = await _supabase.auth.signUp(
