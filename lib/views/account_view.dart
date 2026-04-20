@@ -65,6 +65,7 @@ class _AccountViewState extends State<AccountView>
 
   @override
   void showLoggedIn(UserModel user) {
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
       _isLoggedIn = true;
@@ -74,6 +75,7 @@ class _AccountViewState extends State<AccountView>
 
   @override
   void showLoggedOut() {
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
       _isLoggedIn = false;
@@ -91,11 +93,13 @@ class _AccountViewState extends State<AccountView>
 
   @override
   void showLoading() {
+    if (!mounted) return;
     setState(() => _isLoading = true);
   }
 
   @override
   void hideLoading() {
+    if (!mounted) return;
     setState(() => _isLoading = false);
   }
 
@@ -133,6 +137,8 @@ class _AccountViewState extends State<AccountView>
           const SizedBox(height: 24),
           _buildPointsCard(),
           const SizedBox(height: 20),
+          _buildHowPointsWorkCard(),
+          const SizedBox(height: 24),
           Text(
             'Activity Summary',
             style: Theme.of(context).textTheme.titleLarge,
@@ -151,10 +157,10 @@ class _AccountViewState extends State<AccountView>
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  title: 'Pickups',
+                  title: 'Disposals',
                   value: '${_user?.pickupCount ?? 0}',
                   subtitle: '2 points each',
-                  icon: Icons.volunteer_activism_outlined,
+                  icon: Icons.delete_outline,
                 ),
               ),
             ],
@@ -166,7 +172,7 @@ class _AccountViewState extends State<AccountView>
           ),
           const SizedBox(height: 8),
           Text(
-            'Placeholder reward options for your class prototype.',
+            'Prototype reward options for your class project.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey[600],
                 ),
@@ -226,12 +232,62 @@ class _AccountViewState extends State<AccountView>
             ),
             const SizedBox(height: 8),
             const Text(
-              'Earn points by reporting and later by completing pickups.',
+              'Points are updated when you submit reports and when a disposal is confirmed by QR scan.',
               style: TextStyle(color: Colors.white, fontSize: 14),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHowPointsWorkCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'How points work',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            _buildRuleRow(
+              icon: Icons.report_problem_outlined,
+              text: 'Submitting a needle report earns 1 point.',
+            ),
+            const SizedBox(height: 10),
+            _buildRuleRow(
+              icon: Icons.qr_code_scanner,
+              text: 'Confirming disposal with a disposal-box QR scan earns 2 points.',
+            ),
+            const SizedBox(height: 10),
+            _buildRuleRow(
+              icon: Icons.flag_outlined,
+              text: 'A claimed report shows In Progress so others know it is being handled.',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRuleRow({
+    required IconData icon,
+    required String text,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Colors.green),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(text),
+        ),
+      ],
     );
   }
 
@@ -319,8 +375,8 @@ class _AccountViewState extends State<AccountView>
   Widget _buildLoggedOutView() {
     final heading = _isSignUpMode ? 'Create Account' : 'Sign In';
     final description = _isSignUpMode
-        ? 'Create a new account to track reports, rewards, and future pickups.\nYou can report needles without an account.'
-        : 'You can report needles without an account.\nSign in to track rewards and activity.';
+        ? 'Create a new account to track reports, disposal confirmations, and rewards.\nYou can still report needles without an account.'
+        : 'You can report needles without an account.\nSign in to track rewards and confirmed disposals.';
     final primaryLabel = _isSignUpMode ? 'Create Account' : 'Sign In';
     final togglePrompt = _isSignUpMode
         ? 'Already have an account? '
@@ -375,6 +431,16 @@ class _AccountViewState extends State<AccountView>
             ),
             obscureText: true,
             textInputAction: TextInputAction.done,
+            onSubmitted: (_) {
+              final email = _emailController.text.trim();
+              final password = _passwordController.text;
+
+              if (_isSignUpMode) {
+                _presenter.signUpWithEmail(email, password);
+              } else {
+                _presenter.signInWithEmail(email, password);
+              }
+            },
           ),
           const SizedBox(height: 24),
           FilledButton(
