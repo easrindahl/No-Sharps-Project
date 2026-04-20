@@ -13,11 +13,10 @@ class DisposalBoxModel {
 
   factory DisposalBoxModel.fromMap(Map<String, dynamic> map) {
     return DisposalBoxModel(
-      id: map['id'] as String,
+      id: map['id'].toString(),
       name: map['name'] as String,
       latitude: (map['latitude'] as num).toDouble(),
       longitude: (map['longitude'] as num).toDouble(),
     );
   }
 }
-
