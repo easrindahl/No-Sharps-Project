@@ -11,7 +11,8 @@ class MapPresenter {
     final rows = await supabase
         .from('reports')
         .select(
-          'id, location, created_at, image_path, latitude, longitude, status, claimed_by, claimed_at',
+          'id, location, created_at, image_path, latitude, longitude, '
+          'pickup_status, pickup_user_id, pickup_claimed_at',
         )
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
@@ -33,4 +34,3 @@ class MapPresenter {
         .toList();
   }
 }
-

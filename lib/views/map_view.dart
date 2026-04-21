@@ -95,7 +95,9 @@ class _MapViewState extends State<MapView> {
             isSelected ? BitmapDescriptor.hueRose : statusUi.markerHue,
           ),
           infoWindow: InfoWindow(
-            title: r.location?.isNotEmpty == true ? r.location : 'Needle report',
+            title: r.location?.isNotEmpty == true
+                ? r.location
+                : 'Needle report',
             snippet: createdLabel.isEmpty
                 ? statusUi.label
                 : '${statusUi.label} • $createdLabel',
@@ -323,8 +325,8 @@ class _ReportsFeed extends StatelessWidget {
         child: Text(
           'No reports yet',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       );
     }
@@ -335,10 +337,9 @@ class _ReportsFeed extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Text(
             'Recent reports',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         Expanded(
@@ -350,7 +351,9 @@ class _ReportsFeed extends StatelessWidget {
               final report = reports[index];
               final id = report['id']?.toString();
               final isSelected =
-                  id != null && selectedReportId != null && id == selectedReportId;
+                  id != null &&
+                  selectedReportId != null &&
+                  id == selectedReportId;
               return _ReportFeedTile(
                 report: report,
                 presenter: presenter,
@@ -393,8 +396,10 @@ class _ReportFeedTile extends StatelessWidget {
       }
     }
 
-    final status = presenter.statusUi(report['pickup_status'] as String?);
-    final statusColor = _statusColor(context, report['status'] as String?);
+    final rawStatus =
+        report['pickup_status'] as String? ?? report['status'] as String?;
+    final status = presenter.statusUi(rawStatus);
+    final statusColor = _statusColor(context, rawStatus);
     final borderColor = Theme.of(context).colorScheme.primary;
 
     return Material(
@@ -407,7 +412,9 @@ class _ReportFeedTile extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: isSelected ? Border.all(color: borderColor, width: 2) : null,
+            border: isSelected
+                ? Border.all(color: borderColor, width: 2)
+                : null,
           ),
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -444,8 +451,8 @@ class _ReportFeedTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Wrap(
@@ -473,13 +480,11 @@ class _ReportFeedTile extends StatelessWidget {
                           if (subtitle.isNotEmpty)
                             Text(
                               subtitle,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
                         ],
