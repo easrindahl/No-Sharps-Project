@@ -57,29 +57,6 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Report Details'),
-        actions: [
-          if (canManage)
-            PopupMenuButton<String>(
-              enabled: !_working && !_busy,
-              onSelected: (value) {
-                if (value == 'edit') {
-                  _editLocation();
-                } else if (value == 'delete') {
-                  _deleteReport();
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem<String>(
-                  value: 'edit',
-                  child: Text('Edit location'),
-                ),
-                PopupMenuItem<String>(
-                  value: 'delete',
-                  child: Text('Delete report'),
-                ),
-              ],
-            ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -184,6 +161,28 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                 icon: const Icon(Icons.volunteer_activism),
                 label: const Text('Claim Pickup'),
               ),
+              if (canManage) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: (_busy || _working) ? null : _editLocation,
+                        icon: const Icon(Icons.edit_location_alt_outlined),
+                        label: const Text('Edit'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: (_busy || _working) ? null : _deleteReport,
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Remove'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 12),
               Text(
                 'Claiming a pickup changes its status to In Progress so other volunteers know it is already being handled.',
