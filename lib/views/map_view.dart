@@ -185,6 +185,7 @@ class _MapViewState extends State<MapView> {
       ),
     );
 
+    if (!mounted) return;
     if (changed == true) {
       await _refreshAll();
     }

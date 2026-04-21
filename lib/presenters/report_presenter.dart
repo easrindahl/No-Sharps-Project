@@ -6,6 +6,16 @@ class ReportPresenter {
   final SupabaseClient supabase;
   ReportPresenter(this.supabase);
 
+  String? get currentUserId => supabase.auth.currentUser?.id;
+
+  bool canCurrentUserManageReport(Map<String, dynamic> report) {
+    final ownerId = report['user_id']?.toString();
+    final userId = currentUserId;
+    if (userId == null || userId.isEmpty) return false;
+    if (ownerId == null || ownerId.isEmpty) return false;
+    return ownerId == userId;
+  }
+
   Future<String?> uploadImage(File imageFile) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final randomId =
@@ -196,11 +206,60 @@ class ReportPresenter {
     }).eq('id', userId);
   }
 
+  Future<void> updateReportLocation({
+    required String reportId,
+    required String location,
+  }) async {
+    final userId = currentUserId;
+    if (userId == null) {
+      throw StateError('You must be signed in to edit reports.');
+    }
+
+    await supabase
+        .from('reports')
+        .update({'location': location.trim()})
+        .eq('id', reportId)
+        .eq('user_id', userId);
+  }
+
+  Future<void> deleteReport({required String reportId}) async {
+    final userId = currentUserId;
+    if (userId == null) {
+      throw StateError('You must be signed in to delete reports.');
+    }
+
+    final existing = await supabase
+        .from('reports')
+      .select('image_path')
+        .eq('id', reportId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (existing == null) {
+      throw StateError('Report not found or not owned by current user.');
+    }
+
+    await supabase
+        .from('reports')
+        .delete()
+        .eq('id', reportId)
+        .eq('user_id', userId);
+
+    final imagePath = _normalizeImagePath(existing['image_path'] as String?);
+    if (imagePath != null && imagePath.isNotEmpty) {
+      try {
+        await supabase.storage.from('needles').remove([imagePath]);
+      } catch (_) {
+        // Do not fail deletion if image cleanup is blocked by storage policy.
+      }
+    }
+  }
+
   Future<List<Map<String, dynamic>>> fetchReports({int limit = 10}) async {
     final rows = await supabase
         .from('reports')
         .select(
-          'id, location, created_at, image_path, latitude, longitude, pickup_status, pickup_user_id, pickup_claimed_at',
+      'id, location, created_at, image_path, latitude, longitude, pickup_status, pickup_user_id, pickup_claimed_at, user_id',
         )
         .order('created_at', ascending: false)
         .limit(limit);

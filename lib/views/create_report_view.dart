@@ -440,6 +440,65 @@ class _CreateReportViewState extends State<CreateReportView> {
                       ],
                     ),
                     const SizedBox(height: 32),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF7F0),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFAEE5B3)),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Safety Guidelines',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1F5133),
+                            ),
+                          ),
+                          SizedBox(height: 14),
+                          Text(
+                            '• Wear gloves while handling needles.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.4,
+                              color: Color(0xFF2A5D3A),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            '• Do not attempt to recap the needle.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.4,
+                              color: Color(0xFF2A5D3A),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            '• Dispose of needles in a designated sharps container.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.4,
+                              color: Color(0xFF2A5D3A),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            '• Wash your hands thoroughly after disposal.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.4,
+                              color: Color(0xFF2A5D3A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
                       height: 56,
