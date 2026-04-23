@@ -15,18 +15,35 @@ class SafetyView extends StatelessWidget {
           children: [
             // General Safety Info section
             
-            Row(
+           Row(
+  crossAxisAlignment: CrossAxisAlignment.center,
   children: [
     const Icon(Icons.phone, color: Colors.blue),
     const SizedBox(width: 8),
-    //actual callable phone number 
+
+    const Text(
+      'Sharps Hotline:',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
+    ),
+
+    const SizedBox(width: 8),
+
     InkWell(
       onTap: () => _launchPhone('2187304001'),
       child: Text(
         '218-730-4001',
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.blue,
+        style: Theme.of(context)
+            .textTheme
+            .headlineSmall
+            ?.copyWith(
+              color: Colors.blue.shade700,
               decoration: TextDecoration.underline,
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
             ),
       ),
     ),
