@@ -330,41 +330,62 @@ class _AccountViewState extends State<AccountView>
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: CircleAvatar(
-          backgroundColor: Colors.green.shade50,
-          child: Icon(
-            reward['icon'] as IconData,
-            color: Colors.green,
-          ),
-        ),
-        title: Text(reward['title'] as String),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(reward['description'] as String),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '$cost pts',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            CircleAvatar(
+              backgroundColor: Colors.green.shade50,
+              child: Icon(
+                reward['icon'] as IconData,
+                color: Colors.green,
+              ),
             ),
-            const SizedBox(height: 6),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      canAfford
-                          ? 'Prototype only: redeem flow not implemented yet.'
-                          : 'Not enough points yet.',
-                    ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reward['title'] as String,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                );
-              },
-              child: const Text('Redeem'),
+                  const SizedBox(height: 6),
+                  Text(reward['description'] as String),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$cost pts',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          canAfford
+                              ? 'Prototype only: redeem flow not implemented yet.'
+                              : 'Not enough points yet.',
+                        ),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    minimumSize: const Size(84, 32),
+                  ),
+                  child: const Text('Redeem'),
+                ),
+              ],
             ),
           ],
         ),

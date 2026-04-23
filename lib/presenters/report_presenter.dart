@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ReportPresenter {
+  static const int _reportPointValue = 1;
+  static const int _pickupPointValue = 2;
+
   final SupabaseClient supabase;
   ReportPresenter(this.supabase);
 
@@ -153,57 +156,83 @@ class ReportPresenter {
   }
 
   Future<void> _awardReportPoint(String userId) async {
-    final existing = await supabase
-        .from('user_rewards')
-        .select()
-        .eq('id', userId)
-        .maybeSingle();
-
-    if (existing == null) {
-      await supabase.from('user_rewards').insert({
-        'id': userId,
-        'report_count': 1,
-        'pickup_count': 0,
-        'total_points': 1,
-      });
-      return;
-    }
-
-    final int currentReportCount = (existing['report_count'] as int?) ?? 0;
-    final int currentPickupCount = (existing['pickup_count'] as int?) ?? 0;
-
-    await supabase.from('user_rewards').update({
-      'report_count': currentReportCount + 1,
-      'pickup_count': currentPickupCount,
-      'total_points': (currentReportCount + 1) + (currentPickupCount * 2),
-    }).eq('id', userId);
+    await _incrementRewards(
+      userId: userId,
+      reportDelta: 1,
+      pickupDelta: 0,
+    );
   }
 
   Future<void> awardPickupPoints(String userId) async {
+    await _incrementRewards(
+      userId: userId,
+      reportDelta: 0,
+      pickupDelta: 2,
+    );
+  }
+
+  Future<void> _incrementRewards({
+    required String userId,
+    required int reportDelta,
+    required int pickupDelta,
+  }) async {
     final existing = await supabase
         .from('user_rewards')
         .select()
         .eq('id', userId)
         .maybeSingle();
 
+    final int currentReportCount = (existing?['report_count'] as num?)?.toInt() ??
+        0;
+    final int currentPickupCount = (existing?['pickup_count'] as num?)?.toInt() ??
+        0;
+
+    final int nextReportCount = currentReportCount + reportDelta;
+    final int nextPickupCount = currentPickupCount + pickupDelta;
+    final int nextTotalPoints =
+        (nextReportCount * _reportPointValue) +
+        (nextPickupCount * _pickupPointValue);
+
     if (existing == null) {
       await supabase.from('user_rewards').insert({
         'id': userId,
-        'report_count': 0,
-        'pickup_count': 1,
-        'total_points': 2,
+        'report_count': nextReportCount,
+        'pickup_count': nextPickupCount,
+        'total_points': nextTotalPoints,
+      });
+    } else {
+      await supabase.from('user_rewards').update({
+        'report_count': nextReportCount,
+        'pickup_count': nextPickupCount,
+        'total_points': nextTotalPoints,
+      }).eq('id', userId);
+    }
+
+    await _syncProfilePoints(userId, nextTotalPoints);
+  }
+
+  Future<void> _syncProfilePoints(String userId, int totalPoints) async {
+    final currentUser = supabase.auth.currentUser;
+
+    final existing = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+    if (existing == null) {
+      await supabase.from('profiles').insert({
+        'id': userId,
+        'email': currentUser?.id == userId ? currentUser?.email : null,
+        'points': totalPoints,
       });
       return;
     }
 
-    final int currentReportCount = (existing['report_count'] as int?) ?? 0;
-    final int currentPickupCount = (existing['pickup_count'] as int?) ?? 0;
-
-    await supabase.from('user_rewards').update({
-      'report_count': currentReportCount,
-      'pickup_count': currentPickupCount + 1,
-      'total_points': currentReportCount + ((currentPickupCount + 1) * 2),
-    }).eq('id', userId);
+    await supabase
+        .from('profiles')
+        .update({'points': totalPoints})
+        .eq('id', userId);
   }
 
   Future<void> updateReportLocation({

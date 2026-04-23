@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 
@@ -22,12 +23,40 @@ class AccountPresenter {
         try {
           final fullUser = await _buildUserModel(user);
           _view.showLoggedIn(fullUser);
+        } on PostgrestException catch (e) {
+          _view.showError(_friendlyPostgrestMessage(e));
+          _view.showLoggedIn(UserModel(id: user.id, email: user.email));
         } catch (e) {
           _view.showError('Failed to load account data');
           _view.showLoggedIn(UserModel(id: user.id, email: user.email));
         }
       } else {
+<<<<<<< Updated upstream
         _view.showLoggedOut();
+=======
+        _loggedOutDebounce = Timer(const Duration(milliseconds: 300), () async {
+          final currentUser = _supabase.auth.currentUser;
+          if (currentUser != null) {
+            try {
+              final fullUser = await _buildUserModel(currentUser);
+              _view.showLoggedIn(fullUser);
+            } on PostgrestException catch (e) {
+              _view.showError(_friendlyPostgrestMessage(e));
+              _view.showLoggedIn(
+                UserModel(id: currentUser.id, email: currentUser.email),
+              );
+            } catch (e) {
+              _view.showError('Failed to load account data');
+              _view.showLoggedIn(
+                UserModel(id: currentUser.id, email: currentUser.email),
+              );
+            }
+            return;
+          }
+
+          _view.showLoggedOut();
+        });
+>>>>>>> Stashed changes
       }
     });
   }
@@ -42,6 +71,9 @@ class AccountPresenter {
       try {
         final fullUser = await _buildUserModel(user);
         _view.showLoggedIn(fullUser);
+      } on PostgrestException catch (e) {
+        _view.showError(_friendlyPostgrestMessage(e));
+        _view.showLoggedIn(UserModel(id: user.id, email: user.email));
       } catch (e) {
         _view.showError('Failed to load rewards data');
         _view.showLoggedIn(UserModel(id: user.id, email: user.email));
@@ -52,6 +84,7 @@ class AccountPresenter {
   }
 
   Future<UserModel> _buildUserModel(User user) async {
+    await _ensureProfile(user);
     final rewards = await _getOrCreateRewards(user.id);
 
     final int reportCount = (rewards['report_count'] as int?) ?? 0;
@@ -65,6 +98,33 @@ class AccountPresenter {
       pickupCount: pickupCount,
       totalPoints: totalPoints,
     );
+  }
+
+  Future<void> _ensureProfile(User user) async {
+    final existing = await _supabase
+        .from('profiles')
+        .select('id, email, points')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (existing == null) {
+      await _supabase.from('profiles').insert({
+        'id': user.id,
+        'email': user.email,
+        'points': 0,
+      });
+      return;
+    }
+
+    final String? existingEmail = existing['email'] as String?;
+    final String? currentEmail = user.email;
+
+    if (currentEmail != null && currentEmail != existingEmail) {
+      await _supabase
+          .from('profiles')
+          .update({'email': currentEmail})
+          .eq('id', user.id);
+    }
   }
 
   Future<Map<String, dynamic>> _getOrCreateRewards(String userId) async {
@@ -121,13 +181,17 @@ class AccountPresenter {
       );
 
       if (response.user != null) {
-        final fullUser = await _buildUserModel(response.user!);
-        _view.showLoggedIn(fullUser);
+        // Let the auth state listener load profile/reward data once.
+        return;
       } else {
         _view.showError('Sign in failed');
       }
     } on AuthException catch (e) {
       _view.showError(e.message);
+    } on SocketException {
+      _view.showError(
+        'Network error: cannot reach Supabase. Check internet, VPN/proxy, and DNS settings.',
+      );
     } on PostgrestException catch (e) {
       _view.showError('Database error: ${e.message}');
     } catch (e) {
@@ -156,14 +220,17 @@ class AccountPresenter {
       );
 
       if (response.user != null) {
-        await _getOrCreateRewards(response.user!.id);
-        final fullUser = await _buildUserModel(response.user!);
-        _view.showLoggedIn(fullUser);
+        // Let the auth state listener load profile/reward data once.
+        return;
       } else {
         _view.showError('Sign up failed');
       }
     } on AuthException catch (e) {
       _view.showError(e.message);
+    } on SocketException {
+      _view.showError(
+        'Network error: cannot reach Supabase. Check internet, VPN/proxy, and DNS settings.',
+      );
     } on PostgrestException catch (e) {
       _view.showError('Database error: ${e.message}');
     } catch (e) {
@@ -183,6 +250,11 @@ class AccountPresenter {
     } on AuthException catch (e) {
       _view.showError(e.message);
       _view.hideLoading();
+    } on SocketException {
+      _view.showError(
+        'Network error: cannot reach Supabase. Check internet, VPN/proxy, and DNS settings.',
+      );
+      _view.hideLoading();
     } catch (e) {
       _view.showError('Google sign in failed: ${e.toString()}');
       _view.hideLoading();
@@ -201,5 +273,19 @@ class AccountPresenter {
     } finally {
       _view.hideLoading();
     }
+  }
+
+  String _friendlyPostgrestMessage(PostgrestException e) {
+    final lower = e.message.toLowerCase();
+    if (lower.contains('row-level security')) {
+      if (lower.contains('profiles')) {
+        return 'RLS policy is blocking writes to profiles. Add insert/update policies for auth.uid() = id.';
+      }
+      if (lower.contains('user_rewards')) {
+        return 'RLS policy is blocking writes to user_rewards. Add insert/update policies for auth.uid() = id.';
+      }
+      return 'RLS policy is blocking this database operation. Check table policies for authenticated users.';
+    }
+    return 'Database error: ${e.message}';
   }
 }
