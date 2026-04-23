@@ -15,16 +15,11 @@ Future<void> main() async {
     );
 
     debugPrint('Supabase initialized successfully');
-    debugPrint('Supabase URL: ${Supabase.instance.client.supabaseUrl}');
   } catch (e) {
     debugPrint('Supabase initialize error: $e');
   }
 
   runApp(const MyApp());
-}
-
-extension on SupabaseClient {
-  get supabaseUrl => null;
 }
 
 final supabase = Supabase.instance.client;

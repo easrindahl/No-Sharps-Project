@@ -40,7 +40,7 @@ class _QrDisposalViewState extends State<QrDisposalView> {
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
-              color: Colors.black.withOpacity(0.55),
+              color: Colors.black.withAlpha((0.55 * 255).round()),
               child: const Text(
                 'Point the camera at the QR code on the disposal box.',
                 textAlign: TextAlign.center,
