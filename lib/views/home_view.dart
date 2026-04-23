@@ -59,7 +59,7 @@ class _HomeViewState extends State<HomeView>
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: Image.asset(
-                    'assets/images/no_sharps_logo.png',
+                    'assets/no_sharps_logo2.png',
                     fit: BoxFit.contain,
                   ),
                 ),
