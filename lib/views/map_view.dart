@@ -113,7 +113,7 @@ class _MapViewState extends State<MapView> {
           position: LatLng(b.latitude, b.longitude),
           zIndexInt: 0,
           icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueGreen,
+            BitmapDescriptor.hueAzure,
           ),
           infoWindow: InfoWindow(title: b.name),
         ),
@@ -206,8 +206,32 @@ class _MapViewState extends State<MapView> {
     await Future.wait([_loadFeed(), _loadMarkers()]);
   }
 
+  Widget _legendRow({required Color color, required String label}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final inProgressHue = _presenter.statusUi('in_progress').markerHue;
+    final completedHue = _presenter.statusUi('completed').markerHue;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Map'),
@@ -222,16 +246,72 @@ class _MapViewState extends State<MapView> {
         children: [
           Expanded(
             flex: 3,
-            child: GoogleMap(
-              initialCameraPosition: const CameraPosition(
-                target: _initialPosition,
-                zoom: 15,
-              ),
-              onMapCreated: (c) => _mapController = c,
-              onTap: _onMapTap,
-              myLocationEnabled: true,
-              myLocationButtonEnabled: true,
-              markers: _markers,
+            child: Stack(
+              children: [
+                GoogleMap(
+                  initialCameraPosition: const CameraPosition(
+                    target: _initialPosition,
+                    zoom: 15,
+                  ),
+                  onMapCreated: (c) => _mapController = c,
+                  onTap: _onMapTap,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: true,
+                  markers: _markers,
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: IgnorePointer(
+                    child: Card(
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: DefaultTextStyle(
+                          style: Theme.of(context).textTheme.bodySmall ??
+                              const TextStyle(fontSize: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Key',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 6),
+                              _legendRow(
+                                color: Colors.red,
+                                label: 'Needle report: Open',
+                              ),
+                              _legendRow(
+                                color: HSVColor.fromAHSV(1, inProgressHue, 1, 1)
+                                    .toColor(),
+                                label: 'Needle report: In Progress',
+                              ),
+                              _legendRow(
+                                color: HSVColor.fromAHSV(1, completedHue, 1, 1)
+                                    .toColor(),
+                                label: 'Needle report: Completed',
+                              ),
+                              _legendRow(
+                                color: HSVColor.fromAHSV(
+                                  1,
+                                  BitmapDescriptor.hueAzure,
+                                  1,
+                                  1,
+                                ).toColor(),
+                                label: 'Disposal box',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           if (_markersError != null)
@@ -466,7 +546,7 @@ class _ReportFeedTile extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.14),
+                              color: statusColor.withAlpha((0.14 * 255).round()),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(

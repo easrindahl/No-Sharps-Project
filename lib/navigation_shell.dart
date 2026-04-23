@@ -24,7 +24,10 @@ class _NavigationShellState extends State<NavigationShell> {
 	@override
 	Widget build(BuildContext context) {
 		return Scaffold(
-			body: _pages[_selectedIndex],
+			body: IndexedStack(
+				index: _selectedIndex,
+				children: _pages,
+			),
 			bottomNavigationBar: BottomNavigationBar(
 				currentIndex: _selectedIndex,
 				type: BottomNavigationBarType.fixed,

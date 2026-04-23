@@ -117,7 +117,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.14),
+                    color: statusColor.withAlpha((0.14 * 255).round()),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
