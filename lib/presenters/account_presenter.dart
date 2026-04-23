@@ -14,9 +14,11 @@ class AccountPresenter {
   final AccountViewContract _view;
   final SupabaseClient _supabase;
   StreamSubscription<AuthState>? _authSubscription;
+  Timer? _loggedOutDebounce;
 
   AccountPresenter(this._view, this._supabase) {
     _authSubscription = _supabase.auth.onAuthStateChange.listen((data) async {
+      _loggedOutDebounce?.cancel();
       final user = data.session?.user;
       if (user != null) {
         try {
@@ -27,12 +29,29 @@ class AccountPresenter {
           _view.showLoggedIn(UserModel(id: user.id, email: user.email));
         }
       } else {
-        _view.showLoggedOut();
+        _loggedOutDebounce = Timer(const Duration(milliseconds: 300), () async {
+          final currentUser = _supabase.auth.currentUser;
+          if (currentUser != null) {
+            try {
+              final fullUser = await _buildUserModel(currentUser);
+              _view.showLoggedIn(fullUser);
+            } catch (e) {
+              _view.showError('Failed to load account data');
+              _view.showLoggedIn(
+                UserModel(id: currentUser.id, email: currentUser.email),
+              );
+            }
+            return;
+          }
+
+          _view.showLoggedOut();
+        });
       }
     });
   }
 
   void dispose() {
+    _loggedOutDebounce?.cancel();
     _authSubscription?.cancel();
   }
 

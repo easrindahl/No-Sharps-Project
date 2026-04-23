@@ -17,6 +17,7 @@ class _AccountViewState extends State<AccountView>
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isCheckingAuth = true;
   bool _isLoggedIn = false;
   bool _isSignUpMode = false;
   UserModel? _user;
@@ -68,6 +69,7 @@ class _AccountViewState extends State<AccountView>
     if (!mounted) return;
     setState(() {
       _isLoading = false;
+      _isCheckingAuth = false;
       _isLoggedIn = true;
       _user = user;
     });
@@ -78,6 +80,7 @@ class _AccountViewState extends State<AccountView>
     if (!mounted) return;
     setState(() {
       _isLoading = false;
+      _isCheckingAuth = false;
       _isLoggedIn = false;
       _user = null;
     });
@@ -94,7 +97,10 @@ class _AccountViewState extends State<AccountView>
   @override
   void showLoading() {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _isCheckingAuth = false;
+    });
   }
 
   @override
@@ -107,7 +113,7 @@ class _AccountViewState extends State<AccountView>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Account')),
-      body: _isLoading
+      body: _isLoading || _isCheckingAuth
           ? const Center(child: CircularProgressIndicator())
           : _isLoggedIn
               ? _buildLoggedInView()
