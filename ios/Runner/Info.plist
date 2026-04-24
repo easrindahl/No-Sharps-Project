@@ -51,5 +51,9 @@
     <string>This app needs your location to report needle disposal sites.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>This app needs your location to report needle disposal sites.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>This app needs camera access so you can photograph needles when creating a report.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>This app needs photo library access so you can choose an existing photo for a report.</string>
 </dict>
 </plist>

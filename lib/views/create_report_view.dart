@@ -273,33 +273,69 @@ class _CreateReportViewState extends State<CreateReportView> {
                           TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                     ),
                     const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        height: 140,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Center(
-                          child: _imageFile == null
-                              ? const Icon(
-                                  Icons.camera_alt_outlined,
-                                  size: 48,
-                                  color: Colors.grey,
-                                )
-                              : ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Image.file(
-                                    _imageFile!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                  ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          if (_imageFile != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(
+                                _imageFile!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 140,
+                              ),
+                            ),
+                          if (_imageFile != null) const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _pickImageFromSource(
+                                ImageSource.camera,
+                              ),
+                              icon: const Icon(Icons.camera_alt_outlined),
+                              label: const Text('Take photo'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2A7D46),
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                        ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _pickImageFromSource(
+                                ImageSource.gallery,
+                              ),
+                              icon: const Icon(Icons.photo_library_outlined),
+                              label: const Text('Select from gallery'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF1F5133),
+                                backgroundColor: const Color(0xFFEFF7F0),
+                                side:
+                                    const BorderSide(color: Color(0xFFAEE5B3)),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -537,13 +573,13 @@ class _CreateReportViewState extends State<CreateReportView> {
     );
   }
 
-  Future<void> _pickImage() async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() {
-        _imageFile = File(picked.path);
-      });
-    }
+  Future<void> _pickImageFromSource(ImageSource source) async {
+    final picked = await _picker.pickImage(source: source);
+    if (!mounted || picked == null) return;
+
+    setState(() {
+      _imageFile = File(picked.path);
+    });
   }
 
   Future<void> _submitReport() async {

@@ -46,7 +46,14 @@ class _HomeViewState extends State<HomeView>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Welcome to Duluth's Sharps Reporting App!"),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: const Text(
+            "Welcome to Duluth's Sharps Reporting App!",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
