@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/disposal_box_model.dart';
 import '../models/report_model.dart';
 import '../presenters/report_presenter.dart';
@@ -116,6 +117,7 @@ class _MapViewState extends State<MapView> {
             BitmapDescriptor.hueAzure,
           ),
           infoWindow: InfoWindow(title: b.name),
+          onTap: () => _showDisposalBoxQr(b),
         ),
       );
     }
@@ -204,6 +206,41 @@ class _MapViewState extends State<MapView> {
 
   Future<void> _refreshAll() async {
     await Future.wait([_loadFeed(), _loadMarkers()]);
+  }
+
+  Future<void> _showDisposalBoxQr(DisposalBoxModel box) async {
+    final qrValue = 'box:${box.id}';
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(box.name),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            QrImageView(
+              data: qrValue,
+              size: 240,
+              backgroundColor: Colors.white,
+            ),
+            const SizedBox(height: 16),
+            SelectableText(qrValue),
+            const SizedBox(height: 8),
+            Text(
+              'Scan this code to confirm a disposal for this box.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _legendRow({required Color color, required String label}) {
